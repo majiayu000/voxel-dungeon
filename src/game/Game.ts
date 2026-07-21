@@ -121,8 +121,6 @@ export class Game {
 
   start(): void {
     this.engine.start();
-    this.world.newRun(randomSeed());
-    clearSuspend();
     this.setState('menu');
   }
 

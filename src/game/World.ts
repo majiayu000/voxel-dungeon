@@ -74,8 +74,8 @@ export class World {
   resume(state: SuspendState): void {
     this.runSeed = state.seed;
     this.rng = mulberry32(state.seed ^ 0x5bd1e995);
-    this.buildFloor(state.floor);
     this.player.restore(state.stats, state.hp, state.gold, state.kills);
+    this.buildFloor(state.floor);
   }
 
   /** 导出当前局状态用于存档。 */

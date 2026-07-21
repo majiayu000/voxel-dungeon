@@ -19,6 +19,12 @@ import { Effects } from '../render/Effects';
 import { PlayerView } from '../render/PlayerView';
 import { Torches } from '../render/Torches';
 
+const MAX_ENEMIES = 24;
+
+export function enemyCountForFloor(floor: number): number {
+  return Math.min(3 + Math.max(1, Math.floor(floor)), MAX_ENEMIES);
+}
+
 /**
  * 当前关卡世界：地牢 + 渲染 + 玩家 + 敌人 + 投射物 + 掉落物 + 特效 + 武器视角 + 音效。
  * 负责按楼层重建地牢、生成敌人（含精英）、结算战斗/掉落/成长、楼梯下探、存档与清理。
@@ -116,7 +122,7 @@ export class World {
     this.torches = new Torches(this.level.rooms, mulberry32(seed ^ 0x2545f491));
     this.engine.scene.add(this.torches.group);
 
-    this.spawnEnemies(3 + floor, mulberry32(seed ^ 0x1b873593));
+    this.spawnEnemies(enemyCountForFloor(floor), mulberry32(seed ^ 0x1b873593));
     this.player.enterFloor(this.level.grid, cellToWorld(this.level.start));
     this.stairsPrev = this.player.onStairs();
     this.onFloorBuilt(floor);

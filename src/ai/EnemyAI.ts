@@ -20,6 +20,8 @@ const RANGED_MIN = 4.5; // 比这更近就后退拉开距离
 const ATTACK_COOLDOWN = 1.0;
 const RANGED_COOLDOWN = 1.8;
 const REPATH_INTERVAL = 0.5;
+const SIGHT_INTERVAL = 0.12;
+const SIGHT_BUCKETS = 8;
 
 /**
  * 敌人 AI 状态机：idle → chase（A* 追击）→ attack。
@@ -30,8 +32,15 @@ export class EnemyAI {
   private path: Cell[] = [];
   private repath = 0;
   private cooldown = 0;
+  private sightTimer: number;
+  private canSeePlayer = false;
+  private plannedFrom: Cell | null = null;
+  private plannedTo: Cell | null = null;
 
-  constructor(private enemy: Enemy) {}
+  constructor(private enemy: Enemy) {
+    // 将不同敌人的视线扫描错开，避免同一帧集中遍历网格。
+    this.sightTimer = (enemy.id % SIGHT_BUCKETS) * (SIGHT_INTERVAL / SIGHT_BUCKETS);
+  }
 
   update(dt: number, grid: Grid, player: Player, rng: Rng, ctx: AiContext): void {
     this.cooldown -= dt;
@@ -43,11 +52,23 @@ export class EnemyAI {
 
     const enemyCell = worldToCell(ep.x, ep.z);
     const playerCell = worldToCell(pp.x, pp.z);
-    const canSee = dist <= SIGHT_RANGE && hasLineOfSight(grid, enemyCell, playerCell);
+    if (dist > SIGHT_RANGE) {
+      this.canSeePlayer = false;
+      this.sightTimer = 0;
+    } else {
+      this.sightTimer -= dt;
+      if (this.sightTimer <= 0) {
+        this.canSeePlayer = hasLineOfSight(grid, enemyCell, playerCell);
+        this.sightTimer = SIGHT_INTERVAL;
+      }
+    }
 
-    if (!canSee) {
+    if (!this.canSeePlayer) {
       this.state = 'idle';
       this.path = [];
+      this.plannedFrom = null;
+      this.plannedTo = null;
+      this.repath = 0;
       return;
     }
 
@@ -124,8 +145,13 @@ export class EnemyAI {
   private chase(dt: number, grid: Grid, enemyCell: Cell, playerCell: Cell): void {
     this.state = 'chase';
     this.repath -= dt;
-    if (this.repath <= 0 || this.path.length === 0) {
+    const targetChanged = !sameCell(this.plannedTo, playerCell);
+    const originChanged = !sameCell(this.plannedFrom, enemyCell);
+    const needsPath = targetChanged || (this.path.length === 0 && (originChanged || this.repath <= 0));
+    if (needsPath) {
       this.repath = REPATH_INTERVAL;
+      this.plannedFrom = { ...enemyCell };
+      this.plannedTo = { ...playerCell };
       this.path = findPath(grid, enemyCell, playerCell) ?? [];
     }
     this.followPath(dt);
@@ -182,4 +208,8 @@ export class EnemyAI {
   private faceDir(dx: number, dz: number): void {
     this.enemy.mesh.rotation.y = Math.atan2(dx, dz);
   }
+}
+
+function sameCell(a: Cell | null, b: Cell): boolean {
+  return a?.x === b.x && a.y === b.y;
 }

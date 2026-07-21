@@ -1,7 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Stats } from '../combat/Stats';
 import type { SuspendState } from '../meta/Save';
-import { World } from './World';
+import { enemyCountForFloor, World } from './World';
+
+describe('enemyCountForFloor', () => {
+  it('前期逐层增加，后期最多生成 24 个敌人', () => {
+    expect(enemyCountForFloor(1)).toBe(4);
+    expect(enemyCountForFloor(10)).toBe(13);
+    expect(enemyCountForFloor(100)).toBe(24);
+  });
+});
 
 describe('World resume', () => {
   it('楼层建成回调看到的是已恢复的玩家状态', () => {

@@ -122,7 +122,6 @@ export class Game {
   }
 
   start(): void {
-    this.engine.start();
     this.setState('menu');
   }
 
@@ -196,6 +195,12 @@ export class Game {
     this.enemyBars.setVisible(s === 'playing');
     this.damageNumbers.setVisible(s === 'playing');
     this.damageFlash.setVisible(s === 'playing');
+    if (s === 'playing') {
+      this.engine.start();
+    } else {
+      this.engine.stop();
+      this.engine.renderOnce();
+    }
     if (s === 'menu') this.refreshMenu();
   }
 

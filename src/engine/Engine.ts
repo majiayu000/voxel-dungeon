@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { AdaptivePixelRatio } from './AdaptivePixelRatio';
 
 /**
  * 引擎薄封装：渲染器 / 场景 / 相机 / 自适应尺寸 / 固定步长主循环。
@@ -12,6 +13,8 @@ export class Engine {
   private readonly step = 1 / 60;
   private acc = 0;
   private last = 0;
+  private running = false;
+  private readonly adaptiveQuality: AdaptivePixelRatio;
 
   /** 固定步长逻辑更新回调。 */
   onLogic: (dt: number) => void = () => {};
@@ -29,7 +32,8 @@ export class Engine {
       );
     }
     this.renderer = renderer;
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.adaptiveQuality = new AdaptivePixelRatio(devicePixelRatio);
+    this.renderer.setPixelRatio(this.adaptiveQuality.current);
     this.renderer.setSize(innerWidth, innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -47,17 +51,32 @@ export class Engine {
   };
 
   start(): void {
+    if (this.running) return;
+    this.running = true;
+    this.acc = 0;
+    this.last = 0;
     this.renderer.setAnimationLoop(this.frame);
   }
 
   stop(): void {
+    if (!this.running) return;
+    this.running = false;
     this.renderer.setAnimationLoop(null);
+  }
+
+  renderOnce(): void {
+    this.renderer.render(this.scene, this.camera);
   }
 
   private frame = (time: number): void => {
     if (this.last === 0) this.last = time;
     let dt = (time - this.last) / 1000;
     this.last = time;
+    const ratio = this.adaptiveQuality.sample(dt);
+    if (ratio !== null) {
+      this.renderer.setPixelRatio(ratio);
+      this.renderer.setSize(innerWidth, innerHeight);
+    }
     dt = Math.min(dt, 0.1); // 钳制，防切后台回来爆冲
     this.acc += dt;
     while (this.acc >= this.step) {

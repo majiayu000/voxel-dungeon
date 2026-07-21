@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { addXp, basePlayerStats, type Stats } from '../combat/Stats';
+import { hasLineOfSight } from '../dungeon/Pathfinding';
 import { type Grid, Tile, worldToCell } from '../dungeon/types';
 import type { Input } from '../engine/Input';
 import type { Enemy } from './Enemy';
@@ -110,9 +111,11 @@ export class Player {
       enemies.map((e) => e.mesh),
       false,
     );
-    if (hits.length > 0) {
-      const enemy = enemies.find((e) => e.mesh === hits[0].object) ?? null;
-      if (enemy) return { fired: true, enemy, point: hits[0].point.clone() };
+    for (const hit of hits) {
+      const enemy = enemies.find((e) => e.alive && e.mesh === hit.object) ?? null;
+      if (enemy && this.canSee(enemy)) {
+        return { fired: true, enemy, point: hit.point.clone() };
+      }
     }
 
     // 2) 近战辅助：攻击距离内、处于视角前方锥体中的最近敌人也算命中（近战手感）
@@ -121,6 +124,7 @@ export class Player {
     let bestDist = Infinity;
     for (const e of enemies) {
       if (!e.alive) continue;
+      if (!this.canSee(e)) continue;
       this.toEnemy.copy(e.mesh.position).sub(this.camera.position);
       const dist = this.toEnemy.length();
       if (dist > ATTACK_RANGE) continue;
@@ -149,8 +153,11 @@ export class Player {
     const meshes = enemies.map((e) => e.mesh);
     const hits = this.raycaster.intersectObjects(meshes, false);
     this.raycaster.far = prevFar;
-    if (hits.length === 0) return null;
-    return enemies.find((e) => e.mesh === hits[0].object) ?? null;
+    for (const hit of hits) {
+      const enemy = enemies.find((e) => e.alive && e.mesh === hit.object) ?? null;
+      if (enemy && this.canSee(enemy)) return enemy;
+    }
+    return null;
   }
 
   /** 视角朝向（绕 Y 轴弧度），供小地图绘制。 */
@@ -222,5 +229,11 @@ export class Player {
     if (!this.grid) return false;
     const c = worldToCell(x, z);
     return this.grid.isWalkable(c.x, c.y);
+  }
+
+  private canSee(enemy: Enemy): boolean {
+    if (!this.grid) return false;
+    const playerCell = worldToCell(this.camera.position.x, this.camera.position.z);
+    return hasLineOfSight(this.grid, playerCell, enemy.cell);
   }
 }

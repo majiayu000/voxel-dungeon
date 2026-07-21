@@ -95,13 +95,25 @@ export function hasLineOfSight(grid: Grid, a: Cell, b: Cell): boolean {
     if (!grid.isWalkable(x0, y0)) return false;
     if (x0 === x1 && y0 === y1) return true;
     const e2 = 2 * err;
+    let nextX = x0;
+    let nextY = y0;
     if (e2 > -dy) {
       err -= dy;
-      x0 += sx;
+      nextX += sx;
     }
     if (e2 < dx) {
       err += dx;
-      y0 += sy;
+      nextY += sy;
     }
+    // 对角跨格时，两侧正交格都必须畅通，避免从墙角缝隙穿透视线。
+    if (
+      nextX !== x0 &&
+      nextY !== y0 &&
+      (!grid.isWalkable(nextX, y0) || !grid.isWalkable(x0, nextY))
+    ) {
+      return false;
+    }
+    x0 = nextX;
+    y0 = nextY;
   }
 }

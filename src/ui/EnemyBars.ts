@@ -74,6 +74,9 @@ export class EnemyBars {
       if (dist > MAX_DIST) continue;
       if (this.camDir.dot(this.toEnemy) <= 0) continue; // 相机背面
 
+      const enemyCell = worldToCell(pos.x, pos.z);
+      if (!hasLineOfSight(grid, enemyCell, playerCell)) continue;
+
       const isTarget = target?.id === e.id;
 
       // 目标脚下脉冲光圈
@@ -96,8 +99,7 @@ export class EnemyBars {
       fx.prevHp = e.hp;
       fx.flash = Math.max(0, fx.flash - dt);
 
-      const los = hasLineOfSight(grid, worldToCell(pos.x, pos.z), playerCell);
-      this.drawPlate(sx, sy, dist, e, fx.flash, los, isTarget);
+      this.drawPlate(sx, sy, dist, e, fx.flash, isTarget);
     }
 
     for (const id of this.fx.keys()) if (!seen.has(id)) this.fx.delete(id);
@@ -137,7 +139,6 @@ export class EnemyBars {
     dist: number,
     e: Enemy,
     flash: number,
-    los: boolean,
     isTarget: boolean,
   ): void {
     const ctx = this.ctx;
@@ -150,7 +151,7 @@ export class EnemyBars {
     const typeHex = '#' + e.type.color.toString(16).padStart(6, '0');
     const frameColor = e.elite ? ELITE_GOLD : typeHex;
 
-    ctx.globalAlpha = los ? 1 : 0.3;
+    ctx.globalAlpha = 1;
     ctx.textAlign = 'center';
 
     // 名称 + 等级（精英金色★）

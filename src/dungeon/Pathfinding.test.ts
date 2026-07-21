@@ -82,4 +82,11 @@ describe('hasLineOfSight', () => {
     grid.set(2, 2, Tile.Wall);
     expect(hasLineOfSight(grid, { x: 0, y: 0 }, { x: 4, y: 4 })).toBe(false);
   });
+
+  it('两堵墙夹出的对角缝不可见', () => {
+    const grid = emptyGrid(4, 4);
+    grid.set(2, 1, Tile.Wall);
+    grid.set(1, 2, Tile.Wall);
+    expect(hasLineOfSight(grid, { x: 1, y: 1 }, { x: 2, y: 2 })).toBe(false);
+  });
 });

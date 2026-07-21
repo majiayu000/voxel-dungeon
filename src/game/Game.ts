@@ -46,6 +46,7 @@ export class Game {
   private readonly shake = new Shake();
   private readonly lastShake = new THREE.Vector3();
   private hitstop = 0;
+  private hitMarkerTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly menuEl: HTMLElement;
   private readonly pauseEl: HTMLElement;
@@ -74,6 +75,7 @@ export class Game {
       this.damageNumbers.spawn(pos, amount, crit);
       this.shake.add(crit ? 0.42 : 0.15);
       if (crit) this.hitstop = 0.07;
+      this.showHitMarker(crit);
     };
 
     this.menuEl = byId('menu');
@@ -126,6 +128,7 @@ export class Game {
 
   /** 释放引擎与输入（开发热更新时调用，避免 WebGL 上下文泄漏）。 */
   dispose(): void {
+    if (this.hitMarkerTimer) clearTimeout(this.hitMarkerTimer);
     this.input.dispose();
     this.engine.dispose();
   }
@@ -154,6 +157,9 @@ export class Game {
     this.hitstop = 0;
     this.shake.reset();
     this.lastShake.set(0, 0, 0);
+    if (this.hitMarkerTimer) clearTimeout(this.hitMarkerTimer);
+    this.hitMarkerTimer = null;
+    this.crosshairEl.classList.remove('hit', 'crit');
   }
 
   /** 请求锁定，失败时由 onLockError 触发重试（熬过浏览器冷却期）。 */
@@ -165,6 +171,18 @@ export class Game {
   private doLock(): void {
     if (this.input.isLocked) return;
     this.input.lock();
+  }
+
+  private showHitMarker(crit: boolean): void {
+    if (this.hitMarkerTimer) clearTimeout(this.hitMarkerTimer);
+    this.crosshairEl.classList.remove('hit', 'crit');
+    void this.crosshairEl.offsetWidth;
+    this.crosshairEl.classList.add('hit');
+    if (crit) this.crosshairEl.classList.add('crit');
+    this.hitMarkerTimer = setTimeout(() => {
+      this.crosshairEl.classList.remove('hit', 'crit');
+      this.hitMarkerTimer = null;
+    }, 130);
   }
 
   private setState(s: GameState): void {

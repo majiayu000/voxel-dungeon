@@ -40,7 +40,8 @@ export class HUD {
   update(player: Player, floor: number, enemyCount: number): void {
     this.drawHearts(player.hp / player.stats.maxHp);
     this.drawXp(player.stats.level, player.stats.xp / xpToNext(player.stats.level));
-    this.stats.textContent = `攻击 ${player.stats.attack} · 护甲 ${player.stats.armor}`;
+    const dash = player.dashCooldownRemaining <= 0 ? '就绪' : `${player.dashCooldownRemaining.toFixed(1)}s`;
+    this.stats.textContent = `攻击 ${player.stats.attack} · 护甲 ${player.stats.armor} · 闪避 ${dash}`;
     this.right.textContent = [`第 ${floor} 层`, `击杀 ${player.kills}`, `金币 ${player.gold}`, `剩余敌人 ${enemyCount}`].join('\n');
   }
 

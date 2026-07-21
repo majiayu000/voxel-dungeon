@@ -7,8 +7,10 @@ import * as THREE from 'three';
 export class PlayerView {
   private readonly weapon = new THREE.Group();
   private swingT = 0;
+  private dashT = 0;
   private idleT = 0;
   private readonly swingDur = 0.22;
+  private readonly dashDur = 0.2;
 
   constructor(camera: THREE.Camera) {
     const steel = new THREE.MeshStandardMaterial({ color: 0xcfd4dd, roughness: 0.3, metalness: 0.6 });
@@ -31,12 +33,25 @@ export class PlayerView {
   }
 
   swing(): void {
+    this.dashT = 0;
     this.swingT = this.swingDur;
+  }
+
+  dash(): void {
+    this.swingT = 0;
+    this.dashT = this.dashDur;
   }
 
   update(dt: number): void {
     this.idleT += dt;
-    if (this.swingT > 0) {
+    if (this.dashT > 0) {
+      this.dashT = Math.max(0, this.dashT - dt);
+      const p = 1 - this.dashT / this.dashDur;
+      const dip = Math.sin(p * Math.PI);
+      this.weapon.rotation.x = 0.25 + dip * 0.35;
+      this.weapon.position.y = -0.42 - dip * 0.22;
+      this.weapon.position.z = -0.7 + dip * 0.12;
+    } else if (this.swingT > 0) {
       this.swingT = Math.max(0, this.swingT - dt);
       const p = 1 - this.swingT / this.swingDur; // 0 → 1
       const arc = Math.sin(p * Math.PI);

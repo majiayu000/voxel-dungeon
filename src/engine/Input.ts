@@ -9,6 +9,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 export class Input {
   readonly controls: PointerLockControls;
   private keys = new Set<string>();
+  private pressed = new Set<string>();
   private _mouseDown = false;
 
   /** 指针锁定状态变化时触发。 */
@@ -43,6 +44,13 @@ export class Input {
     return this.keys.has(code);
   }
 
+  /** 消费一次按键按下边沿；长按不会重复触发。 */
+  consumePress(code: string): boolean {
+    if (!this.pressed.has(code)) return false;
+    this.pressed.delete(code);
+    return true;
+  }
+
   /** 请求指针锁定；被拒绝时不抛错，走 onLockError。 */
   lock(): void {
     try {
@@ -65,6 +73,7 @@ export class Input {
   };
 
   private onKeyDown = (e: KeyboardEvent): void => {
+    if (!this.keys.has(e.code)) this.pressed.add(e.code);
     this.keys.add(e.code);
   };
 

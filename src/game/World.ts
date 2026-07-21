@@ -123,7 +123,10 @@ export class World {
   }
 
   update(dt: number): void {
-    this.player.update(dt);
+    if (this.player.update(dt)) {
+      this.audio.dash();
+      this.playerView.dash();
+    }
     this.playerView.update(dt);
     this.effects.update(dt);
     this.torches?.update(dt);

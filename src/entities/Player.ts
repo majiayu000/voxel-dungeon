@@ -11,6 +11,10 @@ export const ATTACK_RANGE = 4.6;
 const ATTACK_COOLDOWN = 0.42;
 const AIM_RANGE = 30; // 目标高亮探测距离（比攻击距离远）
 const MELEE_CONE_DOT = 0.78; // 近战辅助锥（约 39°半角）：朝向前方的敌人也能砍中
+const DASH_DURATION = 0.18;
+const DASH_COOLDOWN = 1.35;
+const DASH_SPEED = 20;
+const DASH_INVULNERABLE = 0.24;
 
 /** 一次攻击尝试的结果：是否挥出、命中的敌人、命中点。 */
 export interface AttackResult {
@@ -36,9 +40,13 @@ export class Player {
   private readonly up = new THREE.Vector3(0, 1, 0);
   private move = new THREE.Vector3();
   private readonly toEnemy = new THREE.Vector3();
+  private readonly dashDir = new THREE.Vector3();
   private readonly raycaster = new THREE.Raycaster();
   private readonly screenCenter = new THREE.Vector2(0, 0);
   private attackCooldown = 0;
+  private dashTime = 0;
+  private dashCooldown = 0;
+  private invulnerableTime = 0;
 
   constructor(
     private camera: THREE.PerspectiveCamera,
@@ -51,6 +59,14 @@ export class Player {
     return this.camera.position;
   }
 
+  get isDashing(): boolean {
+    return this.dashTime > 0;
+  }
+
+  get dashCooldownRemaining(): number {
+    return Math.max(0, this.dashCooldown);
+  }
+
   /** 新一局：重置属性、生命与局内统计。 */
   reset(): void {
     this.stats = basePlayerStats();
@@ -59,6 +75,7 @@ export class Player {
     this.gold = 0;
     this.kills = 0;
     this.attackCooldown = 0;
+    this.resetDash();
   }
 
   /** 从存档还原属性与局内统计。 */
@@ -69,17 +86,22 @@ export class Player {
     this.kills = kills;
     this.alive = true;
     this.attackCooldown = 0;
+    this.resetDash();
   }
 
   /** 进入某一层：绑定网格并传送到出生点。 */
   enterFloor(grid: Grid, spawn: { x: number; z: number }): void {
     this.grid = grid;
     this.camera.position.set(spawn.x, EYE_HEIGHT, spawn.z);
+    this.resetDash();
   }
 
-  update(dt: number): void {
-    this.attackCooldown -= dt;
-    if (!this.grid || !this.input.isLocked) return;
+  /** 更新移动；返回本帧是否刚触发闪避。 */
+  update(dt: number): boolean {
+    this.attackCooldown = Math.max(0, this.attackCooldown - dt);
+    this.dashCooldown = Math.max(0, this.dashCooldown - dt);
+    this.invulnerableTime = Math.max(0, this.invulnerableTime - dt);
+    if (!this.grid || !this.input.isLocked) return false;
 
     this.camera.getWorldDirection(this.forward);
     this.forward.y = 0;
@@ -92,15 +114,33 @@ export class Player {
     if (this.input.key('KeyS')) this.move.sub(this.forward);
     if (this.input.key('KeyD')) this.move.add(this.right);
     if (this.input.key('KeyA')) this.move.sub(this.right);
-    if (this.move.lengthSq() === 0) return;
+
+    let dashStarted = false;
+    const dashPressed = this.input.consumePress('Space');
+    if (this.dashTime <= 0 && this.dashCooldown <= 0 && dashPressed) {
+      this.dashDir.copy(this.move.lengthSq() > 0 ? this.move : this.forward).normalize();
+      this.dashTime = DASH_DURATION;
+      this.dashCooldown = DASH_COOLDOWN;
+      this.invulnerableTime = DASH_INVULNERABLE;
+      dashStarted = true;
+    }
+
+    if (this.dashTime > 0) {
+      this.tryMove(this.dashDir.x * DASH_SPEED * dt, this.dashDir.z * DASH_SPEED * dt);
+      this.dashTime = Math.max(0, this.dashTime - dt);
+      return dashStarted;
+    }
+
+    if (this.move.lengthSq() === 0) return dashStarted;
 
     this.move.normalize().multiplyScalar(this.stats.moveSpeed * dt);
     this.tryMove(this.move.x, this.move.z);
+    return dashStarted;
   }
 
   /** 近战攻击：屏幕中心发射线，返回挥击结果（是否挥出 / 命中敌人 / 命中点）。 */
   tryAttack(enemies: Enemy[]): AttackResult {
-    if (this.attackCooldown > 0 || !this.input.isLocked || !this.input.mouseDown) {
+    if (this.isDashing || this.attackCooldown > 0 || !this.input.isLocked || !this.input.mouseDown) {
       return { fired: false, enemy: null, point: null };
     }
     this.attackCooldown = ATTACK_COOLDOWN;
@@ -167,7 +207,7 @@ export class Player {
   }
 
   takeDamage(dmg: number): void {
-    if (!this.alive) return;
+    if (!this.alive || this.invulnerableTime > 0) return;
     this.hp -= dmg;
     if (this.hp <= 0) {
       this.hp = 0;
@@ -235,5 +275,12 @@ export class Player {
     if (!this.grid) return false;
     const playerCell = worldToCell(this.camera.position.x, this.camera.position.z);
     return hasLineOfSight(this.grid, playerCell, enemy.cell);
+  }
+
+  private resetDash(): void {
+    this.dashTime = 0;
+    this.dashCooldown = 0;
+    this.invulnerableTime = 0;
+    this.dashDir.set(0, 0, 0);
   }
 }

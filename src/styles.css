@@ -56,6 +56,25 @@ body {
   height: 100%;
   transform: translateX(-50%);
 }
+#crosshair.hit::before,
+#crosshair.hit::after {
+  background: #ff6555;
+  box-shadow: 0 0 7px rgba(255, 70, 55, 0.9);
+  animation: crosshair-hit 0.13s ease-out;
+}
+#crosshair.hit.crit::before,
+#crosshair.hit.crit::after {
+  background: #ffe06b;
+  box-shadow: 0 0 9px rgba(255, 210, 60, 0.95);
+}
+@keyframes crosshair-hit {
+  from {
+    scale: 1.45;
+  }
+  to {
+    scale: 1;
+  }
+}
 
 /* 全屏覆盖层（菜单 / 暂停 / 死亡结算） */
 .overlay {

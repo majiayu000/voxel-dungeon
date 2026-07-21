@@ -57,6 +57,11 @@ export class GameAudio {
     this.tone(240, 0.09, 'square', 0.1, 110);
   }
 
+  dash(): void {
+    this.noise(0.12, 0.1);
+    this.tone(180, 0.12, 'sine', 0.12, 420);
+  }
+
   hit(crit = false): void {
     this.tone(crit ? 200 : 150, 0.1, 'sawtooth', 0.22, 60);
     this.noise(0.08, 0.15);

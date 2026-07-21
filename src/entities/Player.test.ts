@@ -53,3 +53,81 @@ describe('Player target visibility', () => {
     expect(player.tryAttack([enemy]).enemy).toBe(enemy);
   });
 });
+
+describe('Player dash', () => {
+  function setupDash(): {
+    player: Player;
+    camera: THREE.PerspectiveCamera;
+    pressDash: () => void;
+  } {
+    const grid = Grid.filled(8, 8, Tile.Floor);
+    const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
+    let dashPressed = false;
+    const input = {
+      isLocked: true,
+      mouseDown: true,
+      key: (code: string) => code === 'KeyD',
+      consumePress: (code: string) => {
+        if (code !== 'Space' || !dashPressed) return false;
+        dashPressed = false;
+        return true;
+      },
+    } as unknown as Input;
+    const player = new Player(camera, input);
+    player.enterFloor(grid, { x: 12, z: 12 });
+    return {
+      player,
+      camera,
+      pressDash: () => {
+        dashPressed = true;
+      },
+    };
+  }
+
+  it('按下 Space 后沿移动方向闪避并进入冷却', () => {
+    const { player, camera, pressDash } = setupDash();
+    const startX = camera.position.x;
+    pressDash();
+
+    expect(player.update(1 / 60)).toBe(true);
+    expect(camera.position.x).toBeGreaterThan(startX);
+    expect(player.isDashing).toBe(true);
+    expect(player.dashCooldownRemaining).toBeGreaterThan(1);
+  });
+
+  it('闪避期间无法攻击且免疫伤害', () => {
+    const { player, pressDash } = setupDash();
+    pressDash();
+    player.update(1 / 60);
+    const hpBefore = player.hp;
+
+    player.takeDamage(25);
+
+    expect(player.hp).toBe(hpBefore);
+    expect(player.tryAttack([]).fired).toBe(false);
+  });
+
+  it('闪避结束后恢复受伤与攻击', () => {
+    const { player, pressDash } = setupDash();
+    pressDash();
+    player.update(1 / 60);
+    player.update(0.3);
+
+    player.takeDamage(25);
+
+    expect(player.hp).toBe(player.stats.maxHp - 25);
+    expect(player.tryAttack([]).fired).toBe(true);
+    expect(player.isDashing).toBe(false);
+  });
+
+  it('冷却期间不能连续触发闪避', () => {
+    const { player, pressDash } = setupDash();
+    pressDash();
+    expect(player.update(1 / 60)).toBe(true);
+    player.update(0.3);
+    pressDash();
+
+    expect(player.update(1 / 60)).toBe(false);
+    expect(player.update(2)).toBe(false);
+  });
+});

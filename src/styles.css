@@ -103,19 +103,6 @@ body {
   max-width: 520px;
   line-height: 1.6;
 }
-/* 屏幕阅读器专用（ visually hidden ） */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 /* 像素 Logo（我的世界风格） */
 .title-logo {
   width: min(620px, 84vw);
@@ -124,6 +111,23 @@ body {
   image-rendering: crisp-edges;
   filter: drop-shadow(0 12px 26px rgba(0, 0, 0, 0.65));
   animation: title-float 4.6s ease-in-out infinite;
+}
+.loading-title {
+  font-size: clamp(44px, 8vw, 82px);
+  letter-spacing: 8px;
+  color: #d7d7d7;
+  text-shadow:
+    0 4px 0 #555,
+    0 8px 16px rgba(0, 0, 0, 0.75);
+  animation: title-float 4.6s ease-in-out infinite;
+}
+.loading-status {
+  min-height: 20px;
+  font-size: 13px;
+  color: #ffd24a;
+}
+.loading-status.error {
+  color: #ff7a70;
 }
 @keyframes title-float {
   0%,
@@ -186,6 +190,11 @@ body {
 .overlay button:focus-visible {
   outline: 3px solid #ffd24a;
   outline-offset: 2px;
+}
+.overlay button:disabled {
+  cursor: wait;
+  filter: grayscale(0.65) brightness(0.7);
+  opacity: 0.7;
 }
 
 /* HUD */

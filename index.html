@@ -37,11 +37,12 @@
 
     <!-- 主菜单 -->
     <div id="menu" class="overlay">
-      <h1 class="sr-only">地牢探险</h1>
-      <canvas id="title-logo" class="title-logo" aria-hidden="true"></canvas>
+      <h1 id="loading-title" class="loading-title">地牢探险</h1>
+      <canvas id="title-logo" class="title-logo" aria-hidden="true" hidden></canvas>
       <p class="menu-sub">随机生成的地牢，越深越危险。搜刮、战斗、想办法活下去。</p>
-      <button id="continue-btn" class="hidden">继续上局</button>
-      <button id="start-btn">开始新游戏</button>
+      <p id="loading-status" class="loading-status" role="status" aria-live="polite">正在载入地牢…</p>
+      <button id="continue-btn" class="hidden" disabled>继续上局</button>
+      <button id="start-btn" disabled>开始新游戏</button>
       <p id="menu-meta" class="menu-meta"></p>
       <p class="menu-hint">WASD 移动 · Space 闪避 · 鼠标视角 · 左键攻击 · Esc 暂停 · M 静音</p>
     </div>

@@ -15,6 +15,8 @@ const DASH_DURATION = 0.18;
 const DASH_COOLDOWN = 1.35;
 const DASH_SPEED = 20;
 const DASH_INVULNERABLE = 0.24;
+const KEYBOARD_LOOK_SPEED = 1.8;
+const PITCH_LIMIT = Math.PI / 2 - 0.08;
 
 /** 一次攻击尝试的结果：是否挥出、命中的敌人、命中点。 */
 export interface AttackResult {
@@ -103,6 +105,7 @@ export class Player {
     this.invulnerableTime = Math.max(0, this.invulnerableTime - dt);
     if (!this.grid || !this.input.isLocked) return false;
 
+    this.updateKeyboardLook(dt);
     this.camera.getWorldDirection(this.forward);
     this.forward.y = 0;
     if (this.forward.lengthSq() < 1e-6) this.forward.set(0, 0, -1);
@@ -140,7 +143,8 @@ export class Player {
 
   /** 近战攻击：屏幕中心发射线，返回挥击结果（是否挥出 / 命中敌人 / 命中点）。 */
   tryAttack(enemies: Enemy[]): AttackResult {
-    if (this.isDashing || this.attackCooldown > 0 || !this.input.isLocked || !this.input.mouseDown) {
+    const attackHeld = this.input.mouseDown || this.input.key('KeyF');
+    if (this.isDashing || this.attackCooldown > 0 || !this.input.isLocked || !attackHeld) {
       return { fired: false, enemy: null, point: null };
     }
     this.attackCooldown = ATTACK_COOLDOWN;
@@ -275,6 +279,19 @@ export class Player {
     if (!this.grid) return false;
     const playerCell = worldToCell(this.camera.position.x, this.camera.position.z);
     return hasLineOfSight(this.grid, playerCell, enemy.cell);
+  }
+
+  private updateKeyboardLook(dt: number): void {
+    const yaw = Number(this.input.key('ArrowLeft')) - Number(this.input.key('ArrowRight'));
+    const pitch = Number(this.input.key('ArrowUp')) - Number(this.input.key('ArrowDown'));
+    if (yaw === 0 && pitch === 0) return;
+    this.camera.rotation.order = 'YXZ';
+    this.camera.rotation.y += yaw * KEYBOARD_LOOK_SPEED * dt;
+    this.camera.rotation.x = THREE.MathUtils.clamp(
+      this.camera.rotation.x + pitch * KEYBOARD_LOOK_SPEED * dt,
+      -PITCH_LIMIT,
+      PITCH_LIMIT,
+    );
   }
 
   private resetDash(): void {

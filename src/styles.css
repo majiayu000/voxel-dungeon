@@ -153,6 +153,11 @@ body {
   color: #8b8ba0;
   letter-spacing: 1px;
 }
+.overlay .touch-warning {
+  display: none;
+  font-size: 13px;
+  color: #ffb36b;
+}
 
 /* “我的世界”石砖风格按钮 */
 .overlay button {
@@ -300,4 +305,19 @@ body {
 }
 #minimap.hidden {
   display: none;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .overlay .touch-warning {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title-logo,
+  .loading-title,
+  #crosshair.hit::before,
+  #crosshair.hit::after {
+    animation: none;
+  }
 }

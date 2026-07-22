@@ -98,9 +98,7 @@ export class Game {
     this.engine.renderer.domElement.addEventListener('click', () => {
       if (!this.input.isLocked && this.state === 'playing') this.requestLock();
     });
-    addEventListener('keydown', (e) => {
-      if (e.code === 'KeyM') this.audio.enabled = !this.audio.enabled;
-    });
+    addEventListener('keydown', this.onGlobalKeyDown);
 
     // 锁定被浏览器拒绝（常因退出后 ~1.25s 冷却期）→ 自动重试
     this.input.onLockError = () => {
@@ -128,6 +126,7 @@ export class Game {
   /** 释放引擎与输入（开发热更新时调用，避免 WebGL 上下文泄漏）。 */
   dispose(): void {
     if (this.hitMarkerTimer) clearTimeout(this.hitMarkerTimer);
+    removeEventListener('keydown', this.onGlobalKeyDown);
     this.input.dispose();
     this.engine.dispose();
   }
@@ -170,6 +169,18 @@ export class Game {
   private doLock(): void {
     if (this.input.isLocked) return;
     this.input.lock();
+  }
+
+  private readonly onGlobalKeyDown = (event: KeyboardEvent): void => {
+    this.handleGlobalKeyDown(event);
+  };
+
+  private handleGlobalKeyDown(event: KeyboardEvent): void {
+    if (event.code === 'KeyM') this.audio.enabled = !this.audio.enabled;
+    if (this.state === 'paused' && event.code === 'Enter') {
+      event.preventDefault();
+      this.requestLock();
+    }
   }
 
   private showHitMarker(crit: boolean): void {

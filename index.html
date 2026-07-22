@@ -20,7 +20,7 @@
       </div>
       <div class="hud-top-right" id="hud-right"></div>
       <canvas id="hud-xp" width="380" height="34"></canvas>
-      <div class="hud-hint">WASD 移动 · Space 闪避 · 鼠标左键攻击 · Esc 暂停</div>
+      <div class="hud-hint">WASD 移动 · 方向键转向 · Space 闪避 · F / 左键攻击</div>
     </div>
 
     <!-- 小地图（P4） -->
@@ -44,13 +44,14 @@
       <button id="continue-btn" class="hidden" disabled>继续上局</button>
       <button id="start-btn" disabled>开始新游戏</button>
       <p id="menu-meta" class="menu-meta"></p>
-      <p class="menu-hint">WASD 移动 · Space 闪避 · 鼠标视角 · 左键攻击 · Esc 暂停 · M 静音</p>
+      <p class="menu-hint">WASD 移动 · 方向键 / 鼠标转向 · F / 左键攻击 · Space 闪避 · Esc 暂停 · M 静音</p>
+      <p class="touch-warning">当前版本需要键盘；触屏设备请连接外接键盘，鼠标可选。</p>
     </div>
 
     <!-- 暂停 -->
     <div id="pause" class="overlay hidden">
       <h1>已暂停</h1>
-      <p style="font-size: 14px; color: #a898c0">点击任意处继续（鼠标将重新锁定）</p>
+      <p style="font-size: 14px; color: #a898c0">点击任意处或按 Enter 继续</p>
       <button id="resume-btn">继续</button>
     </div>
 

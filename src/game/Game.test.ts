@@ -50,4 +50,19 @@ describe('Game startup', () => {
     expect(stop).toHaveBeenCalledOnce();
     expect(renderOnce).toHaveBeenCalledOnce();
   });
+
+  it('暂停时按 Enter 可以请求恢复指针锁定', () => {
+    const requestLock = vi.fn();
+    const preventDefault = vi.fn();
+    const game = Object.create(Game.prototype) as Game;
+    Object.assign(game, { state: 'paused', requestLock, audio: { enabled: true } });
+    const keyboard = game as unknown as {
+      handleGlobalKeyDown(event: KeyboardEvent): void;
+    };
+
+    keyboard.handleGlobalKeyDown({ code: 'Enter', preventDefault } as unknown as KeyboardEvent);
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(requestLock).toHaveBeenCalledOnce();
+  });
 });

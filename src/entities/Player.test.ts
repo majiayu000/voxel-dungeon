@@ -131,3 +131,40 @@ describe('Player dash', () => {
     expect(player.update(2)).toBe(false);
   });
 });
+
+describe('Player keyboard controls', () => {
+  function keyboardPlayer(pressed: ReadonlySet<string>, mouseDown = false): {
+    player: Player;
+    camera: THREE.PerspectiveCamera;
+  } {
+    const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
+    const input = {
+      isLocked: true,
+      mouseDown,
+      key: (code: string) => pressed.has(code),
+      consumePress: () => false,
+    } as unknown as Input;
+    const player = new Player(camera, input);
+    player.enterFloor(Grid.filled(8, 8, Tile.Floor), { x: 12, z: 12 });
+    return { player, camera };
+  }
+
+  it('F 键可以代替鼠标左键攻击', () => {
+    const { player } = keyboardPlayer(new Set(['KeyF']));
+    expect(player.tryAttack([]).fired).toBe(true);
+  });
+
+  it('方向键可以水平转向和抬头', () => {
+    const { player, camera } = keyboardPlayer(new Set(['ArrowRight', 'ArrowUp']));
+    player.update(0.25);
+
+    expect(camera.rotation.y).toBeLessThan(0);
+    expect(camera.rotation.x).toBeGreaterThan(0);
+  });
+
+  it('键盘俯仰角限制在可用范围', () => {
+    const { player, camera } = keyboardPlayer(new Set(['ArrowUp']));
+    player.update(10);
+    expect(camera.rotation.x).toBeLessThanOrEqual(Math.PI / 2 - 0.08);
+  });
+});

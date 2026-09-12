@@ -103,7 +103,7 @@ export class EnemyAI {
       }
       return;
     }
-    this.chase(dt, grid, enemyCell, playerCell);
+    this.chase(dt, grid, player, enemyCell, playerCell, dist);
   }
 
   private updateRanged(
@@ -139,10 +139,17 @@ export class EnemyAI {
       this.retreat(dt, grid, player);
       return;
     }
-    this.chase(dt, grid, enemyCell, playerCell);
+    this.chase(dt, grid, player, enemyCell, playerCell, dist);
   }
 
-  private chase(dt: number, grid: Grid, enemyCell: Cell, playerCell: Cell): void {
+  private chase(
+    dt: number,
+    grid: Grid,
+    player: Player,
+    enemyCell: Cell,
+    playerCell: Cell,
+    dist: number,
+  ): void {
     this.state = 'chase';
     this.repath -= dt;
     const targetChanged = !sameCell(this.plannedTo, playerCell);
@@ -154,16 +161,35 @@ export class EnemyAI {
       this.plannedTo = { ...playerCell };
       this.path = findPath(grid, enemyCell, playerCell) ?? [];
     }
+    // Same-cell (or otherwise empty) A* paths leave followPath as a no-op while world
+    // distance can still exceed melee range — steer directly like retreat, but toward.
+    if (this.path.length === 0 && dist > ATTACK_RANGE) {
+      this.steerToward(dt, grid, player);
+      return;
+    }
     this.followPath(dt);
   }
 
   /** 直线远离玩家（可走才走），拉开射击距离。 */
   private retreat(dt: number, grid: Grid, player: Player): void {
     this.state = 'chase';
+    this.steerAway(dt, grid, player);
+  }
+
+  /** 直线靠近玩家（可走才走），用于同格但未进入近战距离。 */
+  private steerToward(dt: number, grid: Grid, player: Player): void {
+    this.steer(dt, grid, player, 1);
+  }
+
+  private steerAway(dt: number, grid: Grid, player: Player): void {
+    this.steer(dt, grid, player, -1);
+  }
+
+  private steer(dt: number, grid: Grid, player: Player, sign: 1 | -1): void {
     const ep = this.enemy.mesh.position;
     const pp = player.position;
-    let ax = ep.x - pp.x;
-    let az = ep.z - pp.z;
+    let ax = (pp.x - ep.x) * sign;
+    let az = (pp.z - ep.z) * sign;
     const len = Math.hypot(ax, az) || 1;
     ax /= len;
     az /= len;

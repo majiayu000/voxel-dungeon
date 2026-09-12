@@ -89,6 +89,10 @@ export class Engine {
   dispose(): void {
     this.stop();
     removeEventListener('resize', this.onResize);
+    // Force WebGL context loss and detach canvas so HMR/teardown does not
+    // leave orphan contexts (black screen / context exhaustion).
+    this.renderer.forceContextLoss?.();
+    this.renderer.domElement.remove();
     this.renderer.dispose();
   }
 }

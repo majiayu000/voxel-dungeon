@@ -38,4 +38,40 @@ describe('Engine render lifecycle', () => {
     expect(render).toHaveBeenCalledOnce();
     expect(render).toHaveBeenCalledWith(scene, camera);
   });
+
+  it('dispose 强制丢失 WebGL 上下文并移除 canvas', () => {
+    const forceContextLoss = vi.fn();
+    const dispose = vi.fn();
+    const remove = vi.fn();
+    const setAnimationLoop = vi.fn();
+    const engine = Object.create(Engine.prototype) as Engine;
+    Object.assign(engine, {
+      running: true,
+      onResize: vi.fn(),
+      renderer: {
+        setAnimationLoop,
+        forceContextLoss,
+        dispose,
+        domElement: { remove },
+      },
+    });
+    const previousRemove = globalThis.removeEventListener;
+    const removeEventListener = vi.fn();
+    globalThis.removeEventListener = removeEventListener as typeof removeEventListener;
+
+    try {
+      engine.dispose();
+
+      expect(setAnimationLoop).toHaveBeenCalledWith(null);
+      expect(forceContextLoss).toHaveBeenCalledOnce();
+      expect(remove).toHaveBeenCalledOnce();
+      expect(dispose).toHaveBeenCalledOnce();
+      expect(removeEventListener).toHaveBeenCalledWith(
+        'resize',
+        (engine as unknown as { onResize: () => void }).onResize,
+      );
+    } finally {
+      globalThis.removeEventListener = previousRemove;
+    }
+  });
 });

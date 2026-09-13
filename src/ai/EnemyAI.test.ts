@@ -78,3 +78,47 @@ describe('EnemyAI scheduling', () => {
     expect(pathfinding.findPath).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('EnemyAI melee same-cell chase', () => {
+  beforeEach(() => {
+    // Same-cell A* returns [] (start == goal); keep that semantics.
+    pathfinding.findPath.mockReset().mockReturnValue([]);
+    pathfinding.hasLineOfSight.mockReset().mockReturnValue(true);
+  });
+
+  it('同格且距离仍大于近战射程时直接朝玩家靠近', () => {
+    const mesh = new THREE.Mesh();
+    // Cell (0,0): |x|,|z| < 2. Dist ≈ 2.69 ∈ (ATTACK_RANGE=2.3, TILE*√2/2≈2.83].
+    mesh.position.set(0, 0.9, 0);
+    const enemy = {
+      id: 0,
+      mesh,
+      stats: { ...STATS, moveSpeed: 6 },
+      type: GRUNT,
+    } as unknown as Enemy;
+    const player = {
+      position: new THREE.Vector3(1.9, 1.7, 1.9),
+      stats: { ...STATS },
+      takeDamage: vi.fn(),
+    } as unknown as Player;
+    const ai = new EnemyAI(enemy);
+    const grid = Grid.filled(8, 8, Tile.Floor);
+    const ctx: AiContext = { spawnProjectile: vi.fn() };
+
+    const startDist = Math.hypot(
+      player.position.x - mesh.position.x,
+      player.position.z - mesh.position.z,
+    );
+    expect(startDist).toBeGreaterThan(2.3);
+    expect(startDist).toBeLessThanOrEqual((4 * Math.SQRT2) / 2);
+
+    for (let i = 0; i < 10; i++) ai.update(1 / 60, grid, player, () => 0.5, ctx);
+
+    const endDist = Math.hypot(
+      player.position.x - mesh.position.x,
+      player.position.z - mesh.position.z,
+    );
+    expect(endDist).toBeLessThan(startDist);
+    expect(pathfinding.findPath).toHaveBeenCalled();
+  });
+});

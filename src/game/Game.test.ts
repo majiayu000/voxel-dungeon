@@ -67,6 +67,71 @@ describe('Game startup', () => {
     expect(preventDefault).toHaveBeenCalledOnce();
     expect(requestLock).toHaveBeenCalledOnce();
   });
+
+  it('dispose 清理锁重试定时器与 DOM 监听，并阻止后续 doLock', () => {
+    vi.useFakeTimers();
+    const previousClearTimeout = globalThis.clearTimeout;
+    const previousRemove = globalThis.removeEventListener;
+    const clearTimeoutFn = vi.fn((id?: ReturnType<typeof setTimeout>) => {
+      previousClearTimeout(id as never);
+    });
+    const removeEventListener = vi.fn();
+    globalThis.clearTimeout = clearTimeoutFn as typeof clearTimeout;
+    globalThis.removeEventListener = removeEventListener as typeof removeEventListener;
+
+    const startBtn = { removeEventListener: vi.fn() };
+    const continueEl = { removeEventListener: vi.fn() };
+    const restartBtn = { removeEventListener: vi.fn() };
+    const pauseEl = { removeEventListener: vi.fn() };
+    const canvas = { removeEventListener: vi.fn() };
+    const inputDispose = vi.fn();
+    const engineDispose = vi.fn();
+    const lock = vi.fn();
+    const onGlobalKeyDown = vi.fn();
+    const game = Object.create(Game.prototype) as Game;
+    Object.assign(game, {
+      disposed: false,
+      lockRetries: 3,
+      lockRetryTimer: setTimeout(() => {}, 1000),
+      hitMarkerTimer: setTimeout(() => {}, 1000),
+      startBtnEl: startBtn,
+      continueEl,
+      restartBtnEl: restartBtn,
+      pauseEl,
+      onStartClick: vi.fn(),
+      onContinueClick: vi.fn(),
+      onRestartClick: vi.fn(),
+      onPauseClick: vi.fn(),
+      onCanvasClick: vi.fn(),
+      onGlobalKeyDown,
+      input: { dispose: inputDispose, isLocked: false, lock },
+      engine: { dispose: engineDispose, renderer: { domElement: canvas } },
+    });
+
+    try {
+      game.dispose();
+
+      expect(clearTimeoutFn).toHaveBeenCalled();
+      expect(startBtn.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+      expect(continueEl.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+      expect(restartBtn.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+      expect(pauseEl.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+      expect(canvas.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+      expect(removeEventListener).toHaveBeenCalledWith('keydown', onGlobalKeyDown);
+      expect(inputDispose).toHaveBeenCalledOnce();
+      expect(engineDispose).toHaveBeenCalledOnce();
+      expect((game as unknown as { disposed: boolean }).disposed).toBe(true);
+      expect((game as unknown as { lockRetries: number }).lockRetries).toBe(0);
+      expect((game as unknown as { lockRetryTimer: unknown }).lockRetryTimer).toBeNull();
+
+      (game as unknown as { doLock(): void }).doLock();
+      expect(lock).not.toHaveBeenCalled();
+    } finally {
+      globalThis.clearTimeout = previousClearTimeout;
+      globalThis.removeEventListener = previousRemove;
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('Game continueRun', () => {

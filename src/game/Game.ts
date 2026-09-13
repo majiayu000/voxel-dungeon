@@ -43,6 +43,8 @@ export class Game {
   private state: GameState = 'menu';
   private prevHp = 100;
   private lockRetries = 0;
+  private disposed = false;
+  private lockRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly shake = new Shake();
   private readonly lastShake = new THREE.Vector3();
   private hitstop = 0;
@@ -55,6 +57,8 @@ export class Game {
   private readonly deathSummaryEl: HTMLElement;
   private readonly continueEl: HTMLElement;
   private readonly menuMetaEl: HTMLElement;
+  private readonly startBtnEl: HTMLElement;
+  private readonly restartBtnEl: HTMLElement;
 
   constructor(container: HTMLElement) {
     this.engine = new Engine(container);
@@ -89,23 +93,26 @@ export class Game {
     // 渲染“我的世界”风格像素标题
     renderPixelTitle('地牢探险', byId('title-logo') as HTMLCanvasElement);
 
-    byId('start-btn').addEventListener('click', () => this.startNewRun());
-    this.continueEl.addEventListener('click', () => this.continueRun());
-    byId('restart-btn').addEventListener('click', () => this.startNewRun());
+    this.startBtnEl = byId('start-btn');
+    this.restartBtnEl = byId('restart-btn');
+    this.startBtnEl.addEventListener('click', this.onStartClick);
+    this.continueEl.addEventListener('click', this.onContinueClick);
+    this.restartBtnEl.addEventListener('click', this.onRestartClick);
     // 点击暂停蒙层任意处即恢复（含“继续”按钮，冒泡触发）
-    this.pauseEl.addEventListener('click', () => this.requestLock());
+    this.pauseEl.addEventListener('click', this.onPauseClick);
     // 兜底：游玩中若指针意外解锁，点画面即可重新锁定
-    this.engine.renderer.domElement.addEventListener('click', () => {
-      if (!this.input.isLocked && this.state === 'playing') this.requestLock();
-    });
+    this.engine.renderer.domElement.addEventListener('click', this.onCanvasClick);
     addEventListener('keydown', this.onGlobalKeyDown);
 
     // 锁定被浏览器拒绝（常因退出后 ~1.25s 冷却期）→ 自动重试
     this.input.onLockError = () => {
-      if (this.lockRetries > 0) {
-        this.lockRetries--;
-        setTimeout(() => this.doLock(), 650);
-      }
+      if (this.disposed || this.lockRetries <= 0) return;
+      this.lockRetries--;
+      if (this.lockRetryTimer) clearTimeout(this.lockRetryTimer);
+      this.lockRetryTimer = setTimeout(() => {
+        this.lockRetryTimer = null;
+        this.doLock();
+      }, 650);
     };
 
     this.input.onLockChange = (locked) => {
@@ -125,7 +132,21 @@ export class Game {
 
   /** 释放引擎与输入（开发热更新时调用，避免 WebGL 上下文泄漏）。 */
   dispose(): void {
-    if (this.hitMarkerTimer) clearTimeout(this.hitMarkerTimer);
+    this.disposed = true;
+    this.lockRetries = 0;
+    if (this.lockRetryTimer) {
+      clearTimeout(this.lockRetryTimer);
+      this.lockRetryTimer = null;
+    }
+    if (this.hitMarkerTimer) {
+      clearTimeout(this.hitMarkerTimer);
+      this.hitMarkerTimer = null;
+    }
+    this.startBtnEl.removeEventListener('click', this.onStartClick);
+    this.continueEl.removeEventListener('click', this.onContinueClick);
+    this.restartBtnEl.removeEventListener('click', this.onRestartClick);
+    this.pauseEl.removeEventListener('click', this.onPauseClick);
+    this.engine.renderer.domElement.removeEventListener('click', this.onCanvasClick);
     removeEventListener('keydown', this.onGlobalKeyDown);
     this.input.dispose();
     this.engine.dispose();
@@ -163,14 +184,35 @@ export class Game {
 
   /** 请求锁定，失败时由 onLockError 触发重试（熬过浏览器冷却期）。 */
   private requestLock(): void {
+    if (this.disposed) return;
     this.lockRetries = 5;
     this.doLock();
   }
 
   private doLock(): void {
-    if (this.input.isLocked) return;
+    if (this.disposed || this.input.isLocked) return;
     this.input.lock();
   }
+
+  private readonly onStartClick = (): void => {
+    this.startNewRun();
+  };
+
+  private readonly onContinueClick = (): void => {
+    this.continueRun();
+  };
+
+  private readonly onRestartClick = (): void => {
+    this.startNewRun();
+  };
+
+  private readonly onPauseClick = (): void => {
+    this.requestLock();
+  };
+
+  private readonly onCanvasClick = (): void => {
+    if (!this.input.isLocked && this.state === 'playing') this.requestLock();
+  };
 
   private readonly onGlobalKeyDown = (event: KeyboardEvent): void => {
     this.handleGlobalKeyDown(event);

@@ -42,11 +42,43 @@ export function saveMeta(meta: Meta): void {
   }
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isValidStats(value: unknown): value is Stats {
+  if (value === null || typeof value !== 'object') return false;
+  const s = value as Record<string, unknown>;
+  return (
+    isFiniteNumber(s.maxHp) &&
+    isFiniteNumber(s.attack) &&
+    isFiniteNumber(s.armor) &&
+    isFiniteNumber(s.critChance) &&
+    isFiniteNumber(s.moveSpeed) &&
+    isFiniteNumber(s.level) &&
+    isFiniteNumber(s.xp)
+  );
+}
+
+function isValidSuspendState(value: unknown): value is SuspendState {
+  if (value === null || typeof value !== 'object') return false;
+  const state = value as Record<string, unknown>;
+  return (
+    isFiniteNumber(state.seed) &&
+    isFiniteNumber(state.floor) &&
+    isFiniteNumber(state.hp) &&
+    isFiniteNumber(state.gold) &&
+    isFiniteNumber(state.kills) &&
+    isValidStats(state.stats)
+  );
+}
+
 export function loadSuspend(): SuspendState | null {
   try {
     const raw = localStorage.getItem(SUSPEND_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as SuspendState;
+    const parsed: unknown = JSON.parse(raw);
+    return isValidSuspendState(parsed) ? parsed : null;
   } catch {
     return null;
   }

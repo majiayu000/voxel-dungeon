@@ -143,7 +143,8 @@ export class Game {
     const snapshot = loadSuspend();
     if (!snapshot) return;
     this.audio.unlock();
-    clearSuspend();
+    // Do not clear before resume: a failed resume must keep the checkpoint.
+    // Successful resume rewrites via world.onFloorBuilt → saveSuspend.
     this.world.resume(snapshot);
     this.resetRunFx();
     this.requestLock();

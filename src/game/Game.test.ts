@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import { basePlayerStats } from '../combat/Stats';
+import * as Save from '../meta/Save';
 import { Game, type GameState } from './Game';
 
 describe('Game startup', () => {
@@ -66,3 +68,40 @@ describe('Game startup', () => {
     expect(requestLock).toHaveBeenCalledOnce();
   });
 });
+
+describe('Game continueRun', () => {
+  it('续玩前不清除 suspend，失败时保留存档', () => {
+    const snapshot = {
+      seed: 7,
+      floor: 2,
+      hp: 50,
+      gold: 3,
+      kills: 1,
+      stats: basePlayerStats(),
+    };
+    const load = vi.spyOn(Save, 'loadSuspend').mockReturnValue(snapshot);
+    const clear = vi.spyOn(Save, 'clearSuspend');
+    const resume = vi.fn(() => {
+      throw new Error('resume failed');
+    });
+    const game = Object.create(Game.prototype) as Game;
+    Object.assign(game, {
+      audio: { unlock: vi.fn() },
+      world: { resume },
+      resetRunFx: vi.fn(),
+      requestLock: vi.fn(),
+    });
+
+    expect(() => {
+      (game as unknown as { continueRun(): void }).continueRun();
+    }).toThrow('resume failed');
+
+    expect(load).toHaveBeenCalledOnce();
+    expect(resume).toHaveBeenCalledWith(snapshot);
+    expect(clear).not.toHaveBeenCalled();
+
+    load.mockRestore();
+    clear.mockRestore();
+  });
+});
+

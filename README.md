@@ -4,6 +4,8 @@
 
 随机地牢 · 实时战斗 · 搜刮成长 · 永久死亡
 
+[在线试玩](https://majiayu000.github.io/voxel-dungeon/) · [本地开发](#本地开发) · [操作](#操作)
+
 ![Voxel Dungeon 主菜单](docs/screenshot.png)
 
 ## 在线试玩

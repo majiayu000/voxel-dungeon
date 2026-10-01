@@ -8,6 +8,8 @@
 
 ![Voxel Dungeon 主菜单](docs/screenshot.png)
 
+
+[玩法与常见问题](https://majiayu000.github.io/voxel-dungeon/guide.html)
 ## 在线试玩
 
 [打开 GitHub Pages 版本](https://majiayu000.github.io/voxel-dungeon/)

@@ -87,6 +87,8 @@ export class DungeonMesh {
     // 释放几何与材质；纹理为共享单例，不在此释放。
     this.group.traverse((o) => {
       if (o instanceof THREE.InstancedMesh) {
+        // Instance attributes are owned by the mesh, separately from its geometry.
+        o.dispose();
         o.geometry.dispose();
         (o.material as THREE.Material).dispose();
       }
